@@ -26,6 +26,10 @@
             padding: 2rem;
             text-align: center;
         }
+        /* Increased spacing after the title */
+        .game-title {
+            margin-bottom: 2.5rem; 
+        }
         .score-display {
             font-size: 1.25rem;
             font-weight: 700;
@@ -37,7 +41,11 @@
             font-size: 3rem;
             font-weight: 700;
             color: #334155;
-            margin-bottom: 2rem;
+            /* Increased bottom margin for more separation */
+            margin-bottom: 3rem; 
+            display: flex; /* Ensure inline-block alignment works */
+            justify-content: center;
+            align-items: flex-end; /* Align the sentence baseline */
         }
         .image-box {
             display: flex;
@@ -82,40 +90,43 @@
             margin-top: -1rem;
             display: inline-block;
         }
-        /* --- NEW STYLES --- */
+        /* --- PROGRESS BAR STYLES (Unchanged) --- */
         .progress-bar-container {
             width: 80%;
             margin: 0 auto 1.5rem;
             height: 20px;
-            background-color: #e0e7ff; /* Light background */
+            background-color: #e0e7ff;
             border-radius: 10px;
             overflow: hidden;
             box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
         }
         #progressBar {
             height: 100%;
-            width: 0%; /* Starts at 0 */
-            background-color: #8b5cf6; /* Purple fill */
+            width: 0%;
+            background-color: #8b5cf6;
             transition: width 0.5s ease-in-out;
             border-radius: 10px 0 0 10px;
         }
-        /* Style for the blank line in the sentence, now solid */
+        /* --- SOLID LINE ALIGNMENT FIX --- */
         #sentenceDisplay .blank-slot {
             display: inline-block;
-            width: 100px; /* Width to accommodate the missing word */
-            border-bottom: 4px solid #334155; /* Solid line */
+            width: 100px;
+            border-bottom: 4px solid #334155; 
             margin: 0 5px;
-            height: 30px; /* Ensure vertical space */
+            /* Key change: use padding-bottom and negative margin to align the line itself 
+               with the text baseline, rather than relying on height */
+            padding-bottom: 5px; 
+            margin-bottom: -5px; 
         }
     </style>
 </head>
 <body>
     <div class="game-card">
-        <h1 class="text-3xl font-bold text-gray-800 mb-2">Find the Sight Word!</h1>
+        <h1 class="text-3xl font-bold text-gray-800 game-title">Find the Sight Word!</h1>
         
         <div class="flex justify-center items-center mb-2">
             <span id="levelIndicator" class="difficulty-indicator bg-indigo-200 text-indigo-700 mr-4">LEVEL 1</span>
-            <span id="difficultyIndicator" class="difficulty-indicator bg-blue-200 text-blue-700">FEW CHOICES</span>
+            <span id="difficultyIndicator" class="difficulty-indicator bg-blue-200 text-blue-700">3 WORD CHOICES</span>
         </div>
         
         <div id="scoreDisplay" class="score-display">Progress: 0 / 10</div>
@@ -127,7 +138,7 @@
         <div id="imageBox" class="image-box text-center">
         </div>
 
-        <div id="sentenceDisplay" class="word-container flex justify-center mb-8 italic">
+        <div id="sentenceDisplay" class="word-container italic">
         </div>
 
         <div id="mx-auto flex justify-center">
@@ -217,7 +228,7 @@
         const scoreDisplayEl = document.getElementById('scoreDisplay');
         const difficultyIndicatorEl = document.getElementById('difficultyIndicator');
         const levelIndicatorEl = document.getElementById('levelIndicator');
-        const progressBarEl = document.getElementById('progressBar'); // NEW
+        const progressBarEl = document.getElementById('progressBar'); 
 
         // --- UTILITY FUNCTIONS ---
         
@@ -277,13 +288,13 @@
             // 3. Update Level Indicator (Current Level)
             levelIndicatorEl.textContent = gameLevels[currentLevelIndex].name.toUpperCase();
             
-            // 4. Update Difficulty Indicator (Choice Count)
+            // 4. Update Difficulty Indicator (Choice Count) - UPDATED TEXT
             if (correctStreak >= DIFFICULTY_THRESHOLD) {
-                difficultyIndicatorEl.textContent = "MORE CHOICES";
+                difficultyIndicatorEl.textContent = "5 WORD CHOICES";
                 difficultyIndicatorEl.classList.remove('bg-blue-200', 'text-blue-700');
                 difficultyIndicatorEl.classList.add('bg-red-200', 'text-red-700');
             } else {
-                difficultyIndicatorEl.textContent = "FEW CHOICES";
+                difficultyIndicatorEl.textContent = "3 WORD CHOICES";
                 difficultyIndicatorEl.classList.add('bg-blue-200', 'text-blue-700');
                 difficultyIndicatorEl.classList.remove('bg-red-200', 'text-red-700');
             }
@@ -349,6 +360,7 @@
             wordButtonsContainer.innerHTML = '';
             
             const currentLevelWords = gameLevels[currentLevelIndex].words;
+            // Use the difficulty indicator to set the number of choices
             const numChoices = (correctStreak >= DIFFICULTY_THRESHOLD) ? 5 : 3; 
             
             const distractors = currentLevelWords
