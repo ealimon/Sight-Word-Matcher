@@ -3,14 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>First Grade Sight Word Matcher</title>
+    <title>First Grade Sight Word Matcher (with Audio)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        /* CSS styles remain the same for visual consistency */
         @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;700&display=swap');
         body {
             font-family: 'Fredoka', sans-serif;
-            background-color: #f0f4f8; /* Light blue-gray background */
+            background-color: #f0f4f8;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -29,11 +30,11 @@
         .score-display {
             font-size: 1.25rem;
             font-weight: 700;
-            color: #10b981; /* Green color for score */
+            color: #10b981;
             margin-bottom: 1rem;
         }
         .word-container {
-            min-height: 80px; /* Ensure height is maintained */
+            min-height: 80px;
             font-size: 3rem;
             font-weight: 700;
             color: #334155;
@@ -65,12 +66,12 @@
             box-shadow: 0 4px 10px rgba(74, 144, 226, 0.3);
         }
         .correct-answer-button {
-            background-color: #4ade80 !important; /* Green */
+            background-color: #4ade80 !important;
             border-color: #16a34a !important;
             color: white !important;
         }
         .incorrect-answer-button {
-            background-color: #f87171 !important; /* Red */
+            background-color: #f87171 !important;
             border-color: #dc2626 !important;
             color: white !important;
         }
@@ -93,14 +94,14 @@
         <div id="scoreDisplay" class="score-display">Correct Streak: 0</div>
 
         <div id="imageBox" class="image-box text-center">
-            </div>
+        </div>
 
         <div id="sentenceDisplay" class="word-container flex justify-center mb-8 italic">
-            </div>
+        </div>
 
         <div id="mx-auto flex justify-center">
             <div id="wordButtons" class="flex justify-center gap-4 flex-wrap max-w-lg">
-                </div>
+            </div>
         </div>
 
         <p id="feedback" class="text-xl h-6 font-semibold mt-6 text-gray-600"></p>
@@ -121,7 +122,7 @@
             { word: "FOR", sentence: "This gift is ____ you.", emoji: "🎁" }
         ];
 
-        // --- Audio Setup using Tone.js (same as original) ---
+        // --- Audio & Speech Setup ---
         const correctSynth = new Tone.Synth({
             oscillator: { type: "sine" },
             envelope: { attack: 0.005, decay: 0.1, sustain: 0.05, release: 0.1 }
@@ -131,10 +132,15 @@
             envelope: { attack: 0.01, decay: 0.05, sustain: 0.01, release: 0.1 }
         }).toDestination();
 
+        // Web Speech API setup
+        const speech = new SpeechSynthesisUtterance();
+        speech.lang = 'en-US'; // Set language for clear reading
+        speech.rate = 0.8;      // Slightly slower speech for children
+
         // --- Game State Variables ---
         let currentWordData = {};
-        let correctStreak = 0; // Tracks consecutive correct words for difficulty
-        const DIFFICULTY_THRESHOLD = 5; // Switch to more choices after 5 correct words
+        let correctStreak = 0;
+        const DIFFICULTY_THRESHOLD = 5;
 
         const imageBox = document.getElementById('imageBox');
         const sentenceDisplayEl = document.getElementById('sentenceDisplay');
@@ -163,6 +169,13 @@
             incorrectSynth.triggerAttackRelease("C3", "16n");
         }
 
+        // New function to speak text
+        function speakText(text) {
+            window.speechSynthesis.cancel(); // Stop any current speech
+            speech.text = text;
+            window.speechSynthesis.speak(speech);
+        }
+
         function updateGameStatus() {
             scoreDisplayEl.textContent = `Correct Streak: ${correctStreak}`;
             
@@ -177,13 +190,10 @@
             }
         }
 
-        // Function to select a random sight word and set up the game
         function loadNewProblem() {
-            // Select a new random word, avoiding the previous word if possible
             const availableWords = sightWords.filter(w => w.word !== currentWordData.word);
             shuffleArray(availableWords);
             
-            // Set the new current word
             currentWordData = availableWords[0] || sightWords[0];
             
             feedbackEl.textContent = '';
@@ -193,28 +203,28 @@
             imageBox.textContent = currentWordData.emoji;
             sentenceDisplayEl.textContent = currentWordData.sentence;
 
+            // NEW: Speak the sentence prompt
+            // Replace the blank ('____') with a pause or 'blank' for better reading flow
+            const speechText = currentWordData.sentence.replace('____', '... blank ...');
+            speakText(speechText);
+
             // Generate word button choices
             generateWordButtons(currentWordData.word);
         }
 
-        // Function to create the set of clickable word buttons
         function generateWordButtons(targetWord) {
             wordButtonsContainer.innerHTML = '';
             
-            // Determine number of total buttons based on difficulty
             const numChoices = (correctStreak >= DIFFICULTY_THRESHOLD) ? 5 : 3; 
             
-            // Get all words, filter out the correct word, then get distractors
             const distractors = sightWords
                 .map(w => w.word)
                 .filter(word => word !== targetWord);
             
             shuffleArray(distractors);
 
-            // Get a subset of distractors to fill up the choices
             const buttonWords = [targetWord, ...distractors.slice(0, numChoices - 1)];
             
-            // Shuffle the button positions
             shuffleArray(buttonWords); 
 
             buttonWords.forEach(word => {
@@ -229,12 +239,11 @@
         // --- EVENT HANDLER ---
 
         function handleWordClick(clickedWord, buttonElement) {
-            // Ensure audio starts on first click
             if (Tone.context.state !== 'running') {
                 Tone.start();
             }
             
-            // Disable all buttons to prevent double-clicking or changing mid-feedback
+            window.speechSynthesis.cancel(); // Stop sentence reading when player clicks
             Array.from(wordButtonsContainer.children).forEach(btn => btn.disabled = true);
 
             if (clickedWord === currentWordData.word) {
@@ -244,8 +253,13 @@
                 feedbackEl.textContent = "YES! " + currentWordData.word + " fits!";
                 correctStreak++;
 
-                // Automatically load the next problem after a short delay
-                setTimeout(loadNewProblem, 2000);
+                // NEW: Speak the correct word and the complete sentence
+                const completedSentence = currentWordData.sentence.replace('____', currentWordData.word);
+                speakText(currentWordData.word + ". " + completedSentence);
+
+
+                // Automatically load the next problem after audio finishes (or a slight delay)
+                setTimeout(loadNewProblem, 3000);
 
             } else {
                 // Incorrect Answer
@@ -253,20 +267,16 @@
                 feedbackEl.textContent = "Not quite! Try another word.";
                 buttonElement.classList.add('incorrect-answer-button');
                 
-                // Reset streak on error
                 correctStreak = 0; 
                 updateGameStatus();
 
-                // Flash the incorrect state and then re-enable/reset buttons after a short delay
                 setTimeout(() => {
                     buttonElement.classList.remove('incorrect-answer-button');
                     feedbackEl.textContent = '';
-                    // Re-enable all buttons EXCEPT the one that was just clicked
                     Array.from(wordButtonsContainer.children).forEach(btn => {
                         if (btn !== buttonElement) {
                              btn.disabled = false;
                         } else {
-                             // Keep the wrong button disabled for the current round
                              btn.style.opacity = '0.5';
                         }
                     });
