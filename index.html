@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sight Word Matcher: Level Progression (No Audio)</title>
+    <title>Sight Word Matcher: Level Progression</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;700&display=swap');
@@ -26,7 +27,7 @@
             text-align: center;
         }
         .game-title {
-            margin-bottom: 2rem; /* Reduced slightly */
+            margin-bottom: 2rem; 
         }
         .score-display {
             font-size: 1.25rem;
@@ -34,13 +35,12 @@
             color: #10b981;
             margin-bottom: 0.5rem;
         }
-        /* Adjusted sentence size and spacing for better readability */
         .word-container {
             min-height: 80px;
-            font-size: 2.5rem; /* Reduced font size */
+            font-size: 2.5rem; 
             font-weight: 700;
             color: #334155;
-            margin-bottom: 2rem; /* Reduced bottom margin */
+            margin-bottom: 2rem; 
             display: flex;
             justify-content: center;
             align-items: flex-end;
@@ -63,7 +63,7 @@
             border-radius: 10px;
             font-size: 2rem;
             font-weight: 700;
-            margin: 8px; /* Increased margin between buttons */
+            margin: 8px; 
             min-width: 120px;
         }
         .word-button:hover {
@@ -104,7 +104,6 @@
             transition: width 0.5s ease-in-out;
             border-radius: 10px 0 0 10px;
         }
-        /* Solid line alignment fix */
         #sentenceDisplay .blank-slot {
             display: inline-block;
             width: 100px;
@@ -196,6 +195,22 @@
             }
         ];
 
+        // --- Audio Setup (Re-Added) ---
+        const correctSynth = new Tone.Synth({
+            oscillator: { type: "sine" }, envelope: { attack: 0.005, decay: 0.1, sustain: 0.05, release: 0.1 }
+        }).toDestination();
+
+        function playCorrectSound() {
+            // Must start the AudioContext on user interaction
+            if (Tone.context.state !== 'running') {
+                Tone.start();
+            }
+            const now = Tone.now();
+            correctSynth.triggerAttackRelease("C5", "16n", now);
+            correctSynth.triggerAttackRelease("E5", "16n", now + 0.1); 
+            correctSynth.triggerAttackRelease("G5", "8n", now + 0.2); 
+        }
+
         // --- Game State Variables ---
         let currentLevelIndex = 0;              
         let masteredWords = new Set();          
@@ -221,8 +236,6 @@
             }
         }
         
-        // Removed playCorrectSound and playIncorrectSound (and Tone.js)
-
         // --- LEVEL MANAGEMENT FUNCTIONS ---
 
         function updateGameStatus() {
@@ -311,14 +324,13 @@
         // --- EVENT HANDLER ---
 
         function handleWordClick(clickedWord, buttonElement) {
-            // Removed Tone.start()
             
             Array.from(wordButtonsContainer.children).forEach(btn => btn.disabled = true);
 
             if (clickedWord === currentWordData.word) {
                 // Correct Answer
                 buttonElement.classList.add('correct-answer-button');
-                // Removed playCorrectSound()
+                playCorrectSound(); // Play sound effect
                 
                 masteredWords.add(currentWordData.word); 
 
@@ -328,13 +340,10 @@
                 const completedSentence = currentWordData.sentence.replace('____', currentWordData.word);
                 sentenceDisplayEl.innerHTML = completedSentence;
 
-                // Removed speakText() call
-
-                setTimeout(loadNewProblem, 1500); // Reduced delay since audio is gone
+                setTimeout(loadNewProblem, 1500); 
 
             } else {
                 // Incorrect Answer
-                // Removed playIncorrectSound()
                 feedbackEl.textContent = "Not quite! Try another word.";
                 buttonElement.classList.add('incorrect-answer-button');
                 
@@ -352,7 +361,6 @@
                         }
                     });
                     
-                    // Re-display the blank slot
                     const sentenceWithSlot = currentWordData.sentence.replace('____', '<span class="blank-slot"></span>');
                     sentenceDisplayEl.innerHTML = sentenceWithSlot;
 
