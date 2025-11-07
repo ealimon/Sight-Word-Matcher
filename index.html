@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sight Word Matcher: Level Progression & Progress Bar</title>
+    <title>Sight Word Matcher: Level Progression</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -43,9 +43,9 @@
             color: #334155;
             /* Increased bottom margin for more separation */
             margin-bottom: 3rem; 
-            display: flex; /* Ensure inline-block alignment works */
+            display: flex;
             justify-content: center;
-            align-items: flex-end; /* Align the sentence baseline */
+            align-items: flex-end;
         }
         .image-box {
             display: flex;
@@ -82,13 +82,13 @@
             border-color: #dc2626 !important;
             color: white !important;
         }
-        .difficulty-indicator {
+        .level-indicator { /* Renamed for clarity, removed difficulty style */
             padding: 0.25rem 0.5rem;
             border-radius: 9999px;
             font-size: 0.875rem;
             font-weight: 700;
-            margin-top: -1rem;
             display: inline-block;
+            margin-bottom: 0.5rem; /* Space below level indicator */
         }
         /* --- PROGRESS BAR STYLES (Unchanged) --- */
         .progress-bar-container {
@@ -113,8 +113,6 @@
             width: 100px;
             border-bottom: 4px solid #334155; 
             margin: 0 5px;
-            /* Key change: use padding-bottom and negative margin to align the line itself 
-               with the text baseline, rather than relying on height */
             padding-bottom: 5px; 
             margin-bottom: -5px; 
         }
@@ -124,9 +122,8 @@
     <div class="game-card">
         <h1 class="text-3xl font-bold text-gray-800 game-title">Find the Sight Word!</h1>
         
-        <div class="flex justify-center items-center mb-2">
-            <span id="levelIndicator" class="difficulty-indicator bg-indigo-200 text-indigo-700 mr-4">LEVEL 1</span>
-            <span id="difficultyIndicator" class="difficulty-indicator bg-blue-200 text-blue-700">3 WORD CHOICES</span>
+        <div class="flex justify-center items-center">
+            <span id="levelIndicator" class="level-indicator bg-indigo-200 text-indigo-700">LEVEL 1</span>
         </div>
         
         <div id="scoreDisplay" class="score-display">Progress: 0 / 10</div>
@@ -226,7 +223,6 @@
         const wordButtonsContainer = document.getElementById('wordButtons');
         const feedbackEl = document.getElementById('feedback');
         const scoreDisplayEl = document.getElementById('scoreDisplay');
-        const difficultyIndicatorEl = document.getElementById('difficultyIndicator');
         const levelIndicatorEl = document.getElementById('levelIndicator');
         const progressBarEl = document.getElementById('progressBar'); 
 
@@ -288,16 +284,7 @@
             // 3. Update Level Indicator (Current Level)
             levelIndicatorEl.textContent = gameLevels[currentLevelIndex].name.toUpperCase();
             
-            // 4. Update Difficulty Indicator (Choice Count) - UPDATED TEXT
-            if (correctStreak >= DIFFICULTY_THRESHOLD) {
-                difficultyIndicatorEl.textContent = "5 WORD CHOICES";
-                difficultyIndicatorEl.classList.remove('bg-blue-200', 'text-blue-700');
-                difficultyIndicatorEl.classList.add('bg-red-200', 'text-red-700');
-            } else {
-                difficultyIndicatorEl.textContent = "3 WORD CHOICES";
-                difficultyIndicatorEl.classList.add('bg-blue-200', 'text-blue-700');
-                difficultyIndicatorEl.classList.remove('bg-red-200', 'text-red-700');
-            }
+            // 4. NOTE: Difficulty indicator removed entirely.
         }
         
         function loadNextLevel() {
@@ -360,7 +347,7 @@
             wordButtonsContainer.innerHTML = '';
             
             const currentLevelWords = gameLevels[currentLevelIndex].words;
-            // Use the difficulty indicator to set the number of choices
+            // Dynamic difficulty logic remains: 3 choices if streak < 5, 5 choices if streak >= 5
             const numChoices = (correctStreak >= DIFFICULTY_THRESHOLD) ? 5 : 3; 
             
             const distractors = currentLevelWords
@@ -382,7 +369,7 @@
             });
         }
 
-        // --- EVENT HANDLER ---
+        // --- EVENT HANDLER (Unchanged) ---
 
         function handleWordClick(clickedWord, buttonElement) {
             if (Tone.context.state !== 'running') {
