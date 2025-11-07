@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>First Grade Sight Word Matcher</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;700&display=swap');
+        body {
+            font-family: 'Fredoka', sans-serif;
+            background-color: #f0f4f8; /* Light blue-gray background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .game-card {
+            background-color: #ffffff;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            width: 100%;
+            padding: 2rem;
+            text-align: center;
+        }
+        .score-display {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #10b981; /* Green color for score */
+            margin-bottom: 1rem;
+        }
+        .word-container {
+            min-height: 80px; /* Ensure height is maintained */
+            font-size: 3rem;
+            font-weight: 700;
+            color: #334155;
+            margin-bottom: 2rem;
+        }
+        .image-box {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 150px;
+            font-size: 8rem;
+            margin-bottom: 1.5rem;
+            border-radius: 10px;
+            background-color: #e2e8f0;
+        }
+        .word-button {
+            transition: all 0.1s ease;
+            cursor: pointer;
+            user-select: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            font-size: 2rem;
+            font-weight: 700;
+            margin: 5px;
+            min-width: 120px;
+        }
+        .word-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 10px rgba(74, 144, 226, 0.3);
+        }
+        .correct-answer-button {
+            background-color: #4ade80 !important; /* Green */
+            border-color: #16a34a !important;
+            color: white !important;
+        }
+        .incorrect-answer-button {
+            background-color: #f87171 !important; /* Red */
+            border-color: #dc2626 !important;
+            color: white !important;
+        }
+        .difficulty-indicator {
+            padding: 0.25rem 0.5rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 700;
+            margin-top: -1rem;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-card">
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">Find the Sight Word!</h1>
+        
+        <span id="difficultyIndicator" class="difficulty-indicator bg-blue-200 text-blue-700">FEW CHOICES</span>
+        
+        <div id="scoreDisplay" class="score-display">Correct Streak: 0</div>
+
+        <div id="imageBox" class="image-box text-center">
+            </div>
+
+        <div id="sentenceDisplay" class="word-container flex justify-center mb-8 italic">
+            </div>
+
+        <div id="mx-auto flex justify-center">
+            <div id="wordButtons" class="flex justify-center gap-4 flex-wrap max-w-lg">
+                </div>
+        </div>
+
+        <p id="feedback" class="text-xl h-6 font-semibold mt-6 text-gray-600"></p>
+    </div>
+
+    <script>
+        // --- Game Data: Common Sight Words with sentence context ---
+        const sightWords = [
+            { word: "THE", sentence: "Look at ____ sun!", emoji: "☀️" },
+            { word: "IS", sentence: "The bug ____ small.", emoji: "🐛" },
+            { word: "AND", sentence: "I like dogs ____ cats.", emoji: "🐕🐈" },
+            { word: "A", sentence: "I see ____ little house.", emoji: "🏠" },
+            { word: "TO", sentence: "We go ____ the park.", emoji: "🌳" },
+            { word: "IN", sentence: "The fish is ____ the water.", emoji: "💧" },
+            { word: "IT", sentence: "____ is my turn now.", emoji: "🙋" },
+            { word: "OF", sentence: "A box ____ toys.", emoji: "🎁" },
+            { word: "WAS", sentence: "She ____ running fast.", emoji: "🏃‍♀️" },
+            { word: "FOR", sentence: "This gift is ____ you.", emoji: "🎁" }
+        ];
+
+        // --- Audio Setup using Tone.js (same as original) ---
+        const correctSynth = new Tone.Synth({
+            oscillator: { type: "sine" },
+            envelope: { attack: 0.005, decay: 0.1, sustain: 0.05, release: 0.1 }
+        }).toDestination();
+        const incorrectSynth = new Tone.Synth({
+            oscillator: { type: "square" },
+            envelope: { attack: 0.01, decay: 0.05, sustain: 0.01, release: 0.1 }
+        }).toDestination();
+
+        // --- Game State Variables ---
+        let currentWordData = {};
+        let correctStreak = 0; // Tracks consecutive correct words for difficulty
+        const DIFFICULTY_THRESHOLD = 5; // Switch to more choices after 5 correct words
+
+        const imageBox = document.getElementById('imageBox');
+        const sentenceDisplayEl = document.getElementById('sentenceDisplay');
+        const wordButtonsContainer = document.getElementById('wordButtons');
+        const feedbackEl = document.getElementById('feedback');
+        const scoreDisplayEl = document.getElementById('scoreDisplay');
+        const difficultyIndicatorEl = document.getElementById('difficultyIndicator');
+
+        // --- UTILITY FUNCTIONS ---
+        
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+        
+        function playCorrectSound() {
+            const now = Tone.now();
+            correctSynth.triggerAttackRelease("C5", "16n", now);
+            correctSynth.triggerAttackRelease("E5", "16n", now + 0.1); 
+            correctSynth.triggerAttackRelease("G5", "8n", now + 0.2); 
+        }
+
+        function playIncorrectSound() {
+            incorrectSynth.triggerAttackRelease("C3", "16n");
+        }
+
+        function updateGameStatus() {
+            scoreDisplayEl.textContent = `Correct Streak: ${correctStreak}`;
+            
+            if (correctStreak >= DIFFICULTY_THRESHOLD) {
+                difficultyIndicatorEl.textContent = "MORE CHOICES";
+                difficultyIndicatorEl.classList.remove('bg-blue-200', 'text-blue-700');
+                difficultyIndicatorEl.classList.add('bg-red-200', 'text-red-700');
+            } else {
+                difficultyIndicatorEl.textContent = "FEW CHOICES";
+                difficultyIndicatorEl.classList.add('bg-blue-200', 'text-blue-700');
+                difficultyIndicatorEl.classList.remove('bg-red-200', 'text-red-700');
+            }
+        }
+
+        // Function to select a random sight word and set up the game
+        function loadNewProblem() {
+            // Select a new random word, avoiding the previous word if possible
+            const availableWords = sightWords.filter(w => w.word !== currentWordData.word);
+            shuffleArray(availableWords);
+            
+            // Set the new current word
+            currentWordData = availableWords[0] || sightWords[0];
+            
+            feedbackEl.textContent = '';
+            updateGameStatus();
+
+            // Update image display and sentence context
+            imageBox.textContent = currentWordData.emoji;
+            sentenceDisplayEl.textContent = currentWordData.sentence;
+
+            // Generate word button choices
+            generateWordButtons(currentWordData.word);
+        }
+
+        // Function to create the set of clickable word buttons
+        function generateWordButtons(targetWord) {
+            wordButtonsContainer.innerHTML = '';
+            
+            // Determine number of total buttons based on difficulty
+            const numChoices = (correctStreak >= DIFFICULTY_THRESHOLD) ? 5 : 3; 
+            
+            // Get all words, filter out the correct word, then get distractors
+            const distractors = sightWords
+                .map(w => w.word)
+                .filter(word => word !== targetWord);
+            
+            shuffleArray(distractors);
+
+            // Get a subset of distractors to fill up the choices
+            const buttonWords = [targetWord, ...distractors.slice(0, numChoices - 1)];
+            
+            // Shuffle the button positions
+            shuffleArray(buttonWords); 
+
+            buttonWords.forEach(word => {
+                const button = document.createElement('button');
+                button.textContent = word;
+                button.classList.add('word-button', 'bg-purple-400', 'text-white', 'shadow-md');
+                button.addEventListener('click', () => handleWordClick(word, button));
+                wordButtonsContainer.appendChild(button);
+            });
+        }
+
+        // --- EVENT HANDLER ---
+
+        function handleWordClick(clickedWord, buttonElement) {
+            // Ensure audio starts on first click
+            if (Tone.context.state !== 'running') {
+                Tone.start();
+            }
+            
+            // Disable all buttons to prevent double-clicking or changing mid-feedback
+            Array.from(wordButtonsContainer.children).forEach(btn => btn.disabled = true);
+
+            if (clickedWord === currentWordData.word) {
+                // Correct Answer
+                buttonElement.classList.add('correct-answer-button');
+                playCorrectSound();
+                feedbackEl.textContent = "YES! " + currentWordData.word + " fits!";
+                correctStreak++;
+
+                // Automatically load the next problem after a short delay
+                setTimeout(loadNewProblem, 2000);
+
+            } else {
+                // Incorrect Answer
+                playIncorrectSound();
+                feedbackEl.textContent = "Not quite! Try another word.";
+                buttonElement.classList.add('incorrect-answer-button');
+                
+                // Reset streak on error
+                correctStreak = 0; 
+                updateGameStatus();
+
+                // Flash the incorrect state and then re-enable/reset buttons after a short delay
+                setTimeout(() => {
+                    buttonElement.classList.remove('incorrect-answer-button');
+                    feedbackEl.textContent = '';
+                    // Re-enable all buttons EXCEPT the one that was just clicked
+                    Array.from(wordButtonsContainer.children).forEach(btn => {
+                        if (btn !== buttonElement) {
+                             btn.disabled = false;
+                        } else {
+                             // Keep the wrong button disabled for the current round
+                             btn.style.opacity = '0.5';
+                        }
+                    });
+
+                }, 1000);
+            }
+        }
+
+        // --- INITIALIZATION ---
+        window.onload = loadNewProblem;
+
+    </script>
+</body>
+</html>
