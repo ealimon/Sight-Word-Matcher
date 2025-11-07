@@ -16,6 +16,7 @@
             align-items: center;
             min-height: 100vh;
             padding: 20px;
+            position: relative; /* Needed for confetti positioning */
         }
         .game-card {
             background-color: #ffffff;
@@ -25,6 +26,7 @@
             width: 100%;
             padding: 2rem;
             text-align: center;
+            z-index: 10; /* Keep game content on top */
         }
         .game-title {
             margin-bottom: 2rem; 
@@ -112,6 +114,35 @@
             padding-bottom: 5px; 
             margin-bottom: -5px; 
         }
+        /* --- Confetti Styles --- */
+        .confetti-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            pointer-events: none;
+            z-index: 100;
+        }
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #ff0;
+            opacity: 0;
+            animation: explode 2s ease-out forwards;
+        }
+        @keyframes explode {
+            0% {
+                opacity: 1;
+                transform: translate(0, 0) rotate(0deg);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(var(--x), var(--y)) rotate(var(--r));
+            }
+        }
     </style>
 </head>
 <body>
@@ -141,6 +172,8 @@
 
         <p id="feedback" class="text-xl h-6 font-semibold mt-6 text-gray-600"></p>
     </div>
+    
+    <div id="confettiContainer" class="confetti-container"></div>
 
     <script>
         // --- Game Data: Structured Levels (10 words each) ---
@@ -195,13 +228,12 @@
             }
         ];
 
-        // --- Audio Setup (Re-Added) ---
+        // --- Audio Setup ---
         const correctSynth = new Tone.Synth({
             oscillator: { type: "sine" }, envelope: { attack: 0.005, decay: 0.1, sustain: 0.05, release: 0.1 }
         }).toDestination();
 
         function playCorrectSound() {
-            // Must start the AudioContext on user interaction
             if (Tone.context.state !== 'running') {
                 Tone.start();
             }
@@ -226,6 +258,7 @@
         const scoreDisplayEl = document.getElementById('scoreDisplay');
         const levelIndicatorEl = document.getElementById('levelIndicator');
         const progressBarEl = document.getElementById('progressBar'); 
+        const confettiContainer = document.getElementById('confettiContainer'); // NEW
 
         // --- UTILITY FUNCTIONS ---
         
@@ -236,12 +269,45 @@
             }
         }
         
+        // --- Confetti Logic ---
+        function triggerConfetti() {
+            const colors = ['#ff0', '#f0f', '#0ff', '#f00', '#0f0', '#00f'];
+            const numConfetti = 50;
+            const containerWidth = confettiContainer.offsetWidth;
+            const containerHeight = confettiContainer.offsetHeight;
+
+            for (let i = 0; i < numConfetti; i++) {
+                const piece = document.createElement('div');
+                piece.classList.add('confetti');
+                
+                // Random position near the top center
+                const startX = (containerWidth / 2) + (Math.random() * 200 - 100);
+                const startY = containerHeight * 0.2; 
+                piece.style.left = `${startX}px`;
+                piece.style.top = `${startY}px`;
+
+                piece.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+
+                // Define random translation and rotation for explosion effect
+                piece.style.setProperty('--x', `${Math.random() * 600 - 300}px`);
+                piece.style.setProperty('--y', `${Math.random() * 600 - 300}px`);
+                piece.style.setProperty('--r', `${Math.random() * 360}deg`);
+
+                confettiContainer.appendChild(piece);
+            }
+
+            // Clean up the confetti after the animation
+            setTimeout(() => {
+                confettiContainer.innerHTML = '';
+            }, 2500);
+        }
         // --- LEVEL MANAGEMENT FUNCTIONS ---
 
         function updateGameStatus() {
             const totalWords = gameLevels[currentLevelIndex].words.length;
             const progress = masteredWords.size;
             
+            // Ensures 10 / 10 is displayed when all words are mastered
             scoreDisplayEl.textContent = `Progress: ${progress} / ${totalWords}`;
             
             const percentage = (progress / totalWords) * 100;
@@ -251,11 +317,16 @@
         }
         
         function loadNextLevel() {
+            // Check if level is truly complete (masteredWords.size === totalWords)
+            const totalWords = gameLevels[currentLevelIndex].words.length;
+            if (masteredWords.size === totalWords) {
+                 triggerConfetti(); // Trigger fireworks effect!
+            }
+            
             currentLevelIndex++;
             masteredWords.clear();
             
             if (currentLevelIndex >= gameLevels.length) {
-                // Game Over / All Levels Complete
                 feedbackEl.textContent = "CONGRATULATIONS! You mastered all levels! 🎉";
                 wordButtonsContainer.innerHTML = '';
                 imageBox.textContent = '🏆';
@@ -277,6 +348,8 @@
             const unmasteredWords = currentLevelWords.filter(w => !masteredWords.has(w.word));
 
             if (unmasteredWords.length === 0) {
+                // If this is the last problem of the level, immediately show 10/10 and load next level
+                updateGameStatus();
                 loadNextLevel();
                 return; 
             }
@@ -330,17 +403,28 @@
             if (clickedWord === currentWordData.word) {
                 // Correct Answer
                 buttonElement.classList.add('correct-answer-button');
-                playCorrectSound(); // Play sound effect
+                playCorrectSound(); 
                 
+                // Add word to mastered set BEFORE updating status
                 masteredWords.add(currentWordData.word); 
 
                 feedbackEl.textContent = "YES! " + currentWordData.word + " fits!";
                 correctStreak++;
-
+                
                 const completedSentence = currentWordData.sentence.replace('____', currentWordData.word);
                 sentenceDisplayEl.innerHTML = completedSentence;
 
-                setTimeout(loadNewProblem, 1500); 
+                // Check if this was the final word in the level
+                const totalWords = gameLevels[currentLevelIndex].words.length;
+                if (masteredWords.size === totalWords) {
+                    // Update status to show 10/10 immediately
+                    updateGameStatus();
+                    setTimeout(() => loadNextLevel(), 1500);
+                } else {
+                    // Load next problem
+                    updateGameStatus();
+                    setTimeout(loadNewProblem, 1500); 
+                }
 
             } else {
                 // Incorrect Answer
