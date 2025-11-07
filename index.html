@@ -3,11 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sight Word Matcher: Level Progression</title>
+    <title>Sight Word Matcher: Level Progression & Progress Bar</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* CSS styles remain the same for visual consistency */
         @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;700&display=swap');
         body {
             font-family: 'Fredoka', sans-serif;
@@ -31,7 +30,7 @@
             font-size: 1.25rem;
             font-weight: 700;
             color: #10b981;
-            margin-bottom: 1rem;
+            margin-bottom: 0.5rem;
         }
         .word-container {
             min-height: 80px;
@@ -83,18 +82,47 @@
             margin-top: -1rem;
             display: inline-block;
         }
+        /* --- NEW STYLES --- */
+        .progress-bar-container {
+            width: 80%;
+            margin: 0 auto 1.5rem;
+            height: 20px;
+            background-color: #e0e7ff; /* Light background */
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+        #progressBar {
+            height: 100%;
+            width: 0%; /* Starts at 0 */
+            background-color: #8b5cf6; /* Purple fill */
+            transition: width 0.5s ease-in-out;
+            border-radius: 10px 0 0 10px;
+        }
+        /* Style for the blank line in the sentence, now solid */
+        #sentenceDisplay .blank-slot {
+            display: inline-block;
+            width: 100px; /* Width to accommodate the missing word */
+            border-bottom: 4px solid #334155; /* Solid line */
+            margin: 0 5px;
+            height: 30px; /* Ensure vertical space */
+        }
     </style>
 </head>
 <body>
     <div class="game-card">
         <h1 class="text-3xl font-bold text-gray-800 mb-2">Find the Sight Word!</h1>
         
-        <div class="flex justify-center items-center mb-4">
+        <div class="flex justify-center items-center mb-2">
             <span id="levelIndicator" class="difficulty-indicator bg-indigo-200 text-indigo-700 mr-4">LEVEL 1</span>
             <span id="difficultyIndicator" class="difficulty-indicator bg-blue-200 text-blue-700">FEW CHOICES</span>
         </div>
         
         <div id="scoreDisplay" class="score-display">Progress: 0 / 10</div>
+
+        <div class="progress-bar-container">
+            <div id="progressBar"></div>
+        </div>
 
         <div id="imageBox" class="image-box text-center">
         </div>
@@ -175,10 +203,10 @@
         speech.rate = 0.8;      
 
         // --- Game State Variables ---
-        let currentLevelIndex = 0;              // Start at Level 1 (index 0)
-        let masteredWords = new Set();          // Tracks words correctly answered in the current level
+        let currentLevelIndex = 0;              
+        let masteredWords = new Set();          
         let currentWordData = {};
-        let correctStreak = 0;                  // Used for dynamic choice difficulty
+        let correctStreak = 0;                  
         const DIFFICULTY_THRESHOLD = 5;
 
         // DOM Elements
@@ -189,7 +217,7 @@
         const scoreDisplayEl = document.getElementById('scoreDisplay');
         const difficultyIndicatorEl = document.getElementById('difficultyIndicator');
         const levelIndicatorEl = document.getElementById('levelIndicator');
-
+        const progressBarEl = document.getElementById('progressBar'); // NEW
 
         // --- UTILITY FUNCTIONS ---
         
@@ -218,7 +246,6 @@
         }
 
         function setFemaleVoice() {
-             // (Logic to set preferred voice remains the same)
             const voices = window.speechSynthesis.getVoices();
             const femaleVoice = voices.find(voice => 
                 voice.lang === 'en-US' && 
@@ -237,13 +264,20 @@
         // --- LEVEL MANAGEMENT FUNCTIONS ---
 
         function updateGameStatus() {
-            // Update Score/Progress
-            scoreDisplayEl.textContent = `Progress: ${masteredWords.size} / ${gameLevels[currentLevelIndex].words.length}`;
+            const totalWords = gameLevels[currentLevelIndex].words.length;
+            const progress = masteredWords.size;
             
-            // Update Level Indicator
+            // 1. Update Score/Progress Text
+            scoreDisplayEl.textContent = `Progress: ${progress} / ${totalWords}`;
+            
+            // 2. Update Progress Bar (Visual Achievement)
+            const percentage = (progress / totalWords) * 100;
+            progressBarEl.style.width = `${percentage}%`;
+            
+            // 3. Update Level Indicator (Current Level)
             levelIndicatorEl.textContent = gameLevels[currentLevelIndex].name.toUpperCase();
             
-            // Update Difficulty Indicator (for number of choices)
+            // 4. Update Difficulty Indicator (Choice Count)
             if (correctStreak >= DIFFICULTY_THRESHOLD) {
                 difficultyIndicatorEl.textContent = "MORE CHOICES";
                 difficultyIndicatorEl.classList.remove('bg-blue-200', 'text-blue-700');
@@ -257,58 +291,53 @@
         
         function loadNextLevel() {
             currentLevelIndex++;
-            masteredWords.clear(); // Reset mastered words for the new level
+            masteredWords.clear();
             
             if (currentLevelIndex >= gameLevels.length) {
                 // Game Over / All Levels Complete
-                feedbackEl.textContent = "CONGRATULATIONS! You mastered all levels!";
+                feedbackEl.textContent = "CONGRATULATIONS! You mastered all levels! 🎉";
                 speakText("Congratulations! You mastered all three levels!");
-                // Optionally hide buttons, display final screen
                 wordButtonsContainer.innerHTML = '';
                 imageBox.textContent = '🏆';
-                sentenceDisplayEl.textContent = 'Game Complete!';
+                sentenceDisplayEl.innerHTML = '<span class="text-2xl">Game Complete!</span>';
                 return;
             }
             
             // Announce the new level
             const newLevelName = gameLevels[currentLevelIndex].name;
-            feedbackEl.textContent = `LEVEL UP! Starting ${newLevelName}!`;
+            feedbackEl.textContent = `LEVEL UP! Starting ${newLevelName}! 🚀`;
             speakText(`Level up! Starting ${newLevelName}!`);
             
-            // Reset streak and load first problem of the new level
             correctStreak = 0;
             setTimeout(loadNewProblem, 3000); 
         }
 
         // Function to select a random word *not yet mastered* in the current level
         function loadNewProblem() {
-            // Stop if game is complete
             if (currentLevelIndex >= gameLevels.length) return; 
 
             const currentLevelWords = gameLevels[currentLevelIndex].words;
-            
-            // Get all words in the current level that haven't been mastered
             const unmasteredWords = currentLevelWords.filter(w => !masteredWords.has(w.word));
 
             if (unmasteredWords.length === 0) {
-                // Level is complete!
                 loadNextLevel();
                 return; 
             }
             
-            // Shuffle and pick a word from the unmastered list
             shuffleArray(unmasteredWords);
             
-            // Select a new word, avoiding the previous word if possible
             const availableForSelection = unmasteredWords.filter(w => w.word !== currentWordData.word);
             currentWordData = availableForSelection[0] || unmasteredWords[0];
             
             feedbackEl.textContent = '';
             updateGameStatus();
 
-            // Update display and speech
+            // Update display: Replace '____' with the styled solid line slot
             imageBox.textContent = currentWordData.emoji;
-            sentenceDisplayEl.textContent = currentWordData.sentence;
+            const sentenceWithSlot = currentWordData.sentence.replace('____', '<span class="blank-slot"></span>');
+            sentenceDisplayEl.innerHTML = sentenceWithSlot;
+
+            // Update speech
             const speechText = currentWordData.sentence.replace('____', '... blank ...');
             speakText(speechText);
 
@@ -319,7 +348,6 @@
         function generateWordButtons(targetWord) {
             wordButtonsContainer.innerHTML = '';
             
-            // Use ALL words from the current level as potential distractors
             const currentLevelWords = gameLevels[currentLevelIndex].words;
             const numChoices = (correctStreak >= DIFFICULTY_THRESHOLD) ? 5 : 3; 
             
@@ -357,16 +385,18 @@
                 buttonElement.classList.add('correct-answer-button');
                 playCorrectSound();
                 
-                // Add to mastered set
                 masteredWords.add(currentWordData.word); 
 
                 feedbackEl.textContent = "YES! " + currentWordData.word + " fits!";
                 correctStreak++;
 
+                // Update display to show the word filled in (removing the solid line slot)
                 const completedSentence = currentWordData.sentence.replace('____', currentWordData.word);
+                sentenceDisplayEl.innerHTML = completedSentence;
+
+                // Speak the completed sentence
                 speakText(currentWordData.word + ". " + completedSentence);
 
-                // Load next problem or level
                 setTimeout(loadNewProblem, 3000);
 
             } else {
@@ -375,11 +405,9 @@
                 feedbackEl.textContent = "Not quite! Try another word.";
                 buttonElement.classList.add('incorrect-answer-button');
                 
-                // Reset streak on error
                 correctStreak = 0; 
                 updateGameStatus();
 
-                // Reset button appearance and re-enable choices
                 setTimeout(() => {
                     buttonElement.classList.remove('incorrect-answer-button');
                     feedbackEl.textContent = '';
@@ -387,13 +415,15 @@
                         if (btn !== buttonElement) {
                              btn.disabled = false;
                         } else {
-                             btn.style.opacity = '0.5'; // Visually mark the wrong choice
+                             btn.style.opacity = '0.5';
                         }
                     });
                     
-                    // Re-speak the sentence prompt after a mistake to refocus the child
+                    // Re-speak the sentence prompt and re-display the blank slot
                     const speechText = currentWordData.sentence.replace('____', '... blank ...');
                     speakText(speechText);
+                    const sentenceWithSlot = currentWordData.sentence.replace('____', '<span class="blank-slot"></span>');
+                    sentenceDisplayEl.innerHTML = sentenceWithSlot;
 
                 }, 1000);
             }
