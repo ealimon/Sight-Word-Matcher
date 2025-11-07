@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sight Word Matcher: Level Progression</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+    <title>Sight Word Matcher: Level Progression (No Audio)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;700&display=swap');
@@ -27,7 +26,7 @@
             text-align: center;
         }
         .game-title {
-            margin-bottom: 2.5rem; 
+            margin-bottom: 2rem; /* Reduced slightly */
         }
         .score-display {
             font-size: 1.25rem;
@@ -35,12 +34,13 @@
             color: #10b981;
             margin-bottom: 0.5rem;
         }
+        /* Adjusted sentence size and spacing for better readability */
         .word-container {
             min-height: 80px;
-            font-size: 3rem;
+            font-size: 2.5rem; /* Reduced font size */
             font-weight: 700;
             color: #334155;
-            margin-bottom: 3rem; 
+            margin-bottom: 2rem; /* Reduced bottom margin */
             display: flex;
             justify-content: center;
             align-items: flex-end;
@@ -63,7 +63,7 @@
             border-radius: 10px;
             font-size: 2rem;
             font-weight: 700;
-            margin: 5px;
+            margin: 8px; /* Increased margin between buttons */
             min-width: 120px;
         }
         .word-button:hover {
@@ -104,6 +104,7 @@
             transition: width 0.5s ease-in-out;
             border-radius: 10px 0 0 10px;
         }
+        /* Solid line alignment fix */
         #sentenceDisplay .blank-slot {
             display: inline-block;
             width: 100px;
@@ -149,14 +150,14 @@
             {
                 name: "Level 1: Beginner",
                 words: [
-                    { word: "THE", sentence: "Look at ____ dog.", emoji: "🐕" }, // UPDATED!
+                    { word: "THE", sentence: "Look at ____ dog.", emoji: "🐕" }, 
                     { word: "IS", sentence: "The bug ____ small.", emoji: "🐛" },
                     { word: "AND", sentence: "I like dogs ____ cats.", emoji: "🐕🐈" },
                     { word: "A", sentence: "I see ____ little house.", emoji: "🏠" },
                     { word: "TO", sentence: "We go ____ the park.", emoji: "🌳" },
                     { word: "IN", sentence: "The fish is ____ the water.", emoji: "💧" },
                     { word: "IT", sentence: "____ is my turn now.", emoji: "🙋" },
-                    { word: "OF", sentence: "A box ____ toys.", emoji: "🎁" },
+                    { word: "OF", "sentence": "A box ____ toys.", emoji: "🎁" },
                     { word: "WAS", sentence: "She ____ running fast.", emoji: "🏃‍♀️" },
                     { word: "FOR", sentence: "This gift is ____ you.", emoji: "🎁" }
                 ]
@@ -195,17 +196,6 @@
             }
         ];
 
-        // --- Audio & Speech Setup (Unchanged) ---
-        const correctSynth = new Tone.Synth({
-            oscillator: { type: "sine" }, envelope: { attack: 0.005, decay: 0.1, sustain: 0.05, release: 0.1 }
-        }).toDestination();
-        const incorrectSynth = new Tone.Synth({
-            oscillator: { type: "square" }, envelope: { attack: 0.01, decay: 0.05, sustain: 0.01, release: 0.1 }
-        }).toDestination();
-        const speech = new SpeechSynthesisUtterance();
-        speech.lang = 'en-US'; 
-        speech.rate = 0.8;      
-
         // --- Game State Variables ---
         let currentLevelIndex = 0;              
         let masteredWords = new Set();          
@@ -231,38 +221,7 @@
             }
         }
         
-        function playCorrectSound() {
-            const now = Tone.now();
-            correctSynth.triggerAttackRelease("C5", "16n", now);
-            correctSynth.triggerAttackRelease("E5", "16n", now + 0.1); 
-            correctSynth.triggerAttackRelease("G5", "8n", now + 0.2); 
-        }
-
-        function playIncorrectSound() {
-            incorrectSynth.triggerAttackRelease("C3", "16n");
-        }
-
-        function speakText(text) {
-            window.speechSynthesis.cancel();
-            speech.text = text;
-            window.speechSynthesis.speak(speech);
-        }
-
-        function setFemaleVoice() {
-            const voices = window.speechSynthesis.getVoices();
-            const femaleVoice = voices.find(voice => 
-                voice.lang === 'en-US' && 
-                (voice.name.includes('Female') || voice.name.includes('Zira') || voice.name.includes('Samantha'))
-            );
-            if (femaleVoice) {
-                speech.voice = femaleVoice;
-            }
-        }
-        if (window.speechSynthesis.onvoiceschanged !== undefined) {
-            window.speechSynthesis.onvoiceschanged = setFemaleVoice;
-        } else {
-            setFemaleVoice();
-        }
+        // Removed playCorrectSound and playIncorrectSound (and Tone.js)
 
         // --- LEVEL MANAGEMENT FUNCTIONS ---
 
@@ -285,7 +244,6 @@
             if (currentLevelIndex >= gameLevels.length) {
                 // Game Over / All Levels Complete
                 feedbackEl.textContent = "CONGRATULATIONS! You mastered all levels! 🎉";
-                speakText("Congratulations! You mastered all three levels!");
                 wordButtonsContainer.innerHTML = '';
                 imageBox.textContent = '🏆';
                 sentenceDisplayEl.innerHTML = '<span class="text-2xl">Game Complete!</span>';
@@ -294,7 +252,6 @@
             
             const newLevelName = gameLevels[currentLevelIndex].name;
             feedbackEl.textContent = `LEVEL UP! Starting ${newLevelName}! 🚀`;
-            speakText(`Level up! Starting ${newLevelName}!`);
             
             correctStreak = 0;
             setTimeout(loadNewProblem, 3000); 
@@ -322,9 +279,6 @@
             imageBox.textContent = currentWordData.emoji;
             const sentenceWithSlot = currentWordData.sentence.replace('____', '<span class="blank-slot"></span>');
             sentenceDisplayEl.innerHTML = sentenceWithSlot;
-
-            const speechText = currentWordData.sentence.replace('____', '... blank ...');
-            speakText(speechText);
 
             generateWordButtons(currentWordData.word);
         }
@@ -354,20 +308,17 @@
             });
         }
 
-        // --- EVENT HANDLER (Unchanged) ---
+        // --- EVENT HANDLER ---
 
         function handleWordClick(clickedWord, buttonElement) {
-            if (Tone.context.state !== 'running') {
-                Tone.start();
-            }
+            // Removed Tone.start()
             
-            window.speechSynthesis.cancel();
             Array.from(wordButtonsContainer.children).forEach(btn => btn.disabled = true);
 
             if (clickedWord === currentWordData.word) {
                 // Correct Answer
                 buttonElement.classList.add('correct-answer-button');
-                playCorrectSound();
+                // Removed playCorrectSound()
                 
                 masteredWords.add(currentWordData.word); 
 
@@ -377,13 +328,13 @@
                 const completedSentence = currentWordData.sentence.replace('____', currentWordData.word);
                 sentenceDisplayEl.innerHTML = completedSentence;
 
-                speakText(currentWordData.word + ". " + completedSentence);
+                // Removed speakText() call
 
-                setTimeout(loadNewProblem, 3000);
+                setTimeout(loadNewProblem, 1500); // Reduced delay since audio is gone
 
             } else {
                 // Incorrect Answer
-                playIncorrectSound();
+                // Removed playIncorrectSound()
                 feedbackEl.textContent = "Not quite! Try another word.";
                 buttonElement.classList.add('incorrect-answer-button');
                 
@@ -401,8 +352,7 @@
                         }
                     });
                     
-                    const speechText = currentWordData.sentence.replace('____', '... blank ...');
-                    speakText(speechText);
+                    // Re-display the blank slot
                     const sentenceWithSlot = currentWordData.sentence.replace('____', '<span class="blank-slot"></span>');
                     sentenceDisplayEl.innerHTML = sentenceWithSlot;
 
