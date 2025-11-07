@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>First Grade Sight Word Matcher (with Audio)</title>
+    <title>Sight Word Matcher: Level Progression</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -89,9 +89,12 @@
     <div class="game-card">
         <h1 class="text-3xl font-bold text-gray-800 mb-2">Find the Sight Word!</h1>
         
-        <span id="difficultyIndicator" class="difficulty-indicator bg-blue-200 text-blue-700">FEW CHOICES</span>
+        <div class="flex justify-center items-center mb-4">
+            <span id="levelIndicator" class="difficulty-indicator bg-indigo-200 text-indigo-700 mr-4">LEVEL 1</span>
+            <span id="difficultyIndicator" class="difficulty-indicator bg-blue-200 text-blue-700">FEW CHOICES</span>
+        </div>
         
-        <div id="scoreDisplay" class="score-display">Correct Streak: 0</div>
+        <div id="scoreDisplay" class="score-display">Progress: 0 / 10</div>
 
         <div id="imageBox" class="image-box text-center">
         </div>
@@ -108,46 +111,85 @@
     </div>
 
     <script>
-        // --- Game Data: Common Sight Words with sentence context ---
-        const sightWords = [
-            { word: "THE", sentence: "Look at ____ sun!", emoji: "☀️" },
-            { word: "IS", sentence: "The bug ____ small.", emoji: "🐛" },
-            { word: "AND", sentence: "I like dogs ____ cats.", emoji: "🐕🐈" },
-            { word: "A", sentence: "I see ____ little house.", emoji: "🏠" },
-            { word: "TO", sentence: "We go ____ the park.", emoji: "🌳" },
-            { word: "IN", sentence: "The fish is ____ the water.", emoji: "💧" },
-            { word: "IT", sentence: "____ is my turn now.", emoji: "🙋" },
-            { word: "OF", sentence: "A box ____ toys.", emoji: "🎁" },
-            { word: "WAS", sentence: "She ____ running fast.", emoji: "🏃‍♀️" },
-            { word: "FOR", sentence: "This gift is ____ you.", emoji: "🎁" }
+        // --- Game Data: Structured Levels (10 words each) ---
+        const gameLevels = [
+            // Level 1: Kindergarten (Dolch Pre-Primer/Primer Focus) - 10 Words
+            {
+                name: "Level 1: Beginner",
+                words: [
+                    { word: "THE", sentence: "Look at ____ sun!", emoji: "☀️" },
+                    { word: "IS", sentence: "The bug ____ small.", emoji: "🐛" },
+                    { word: "AND", sentence: "I like dogs ____ cats.", emoji: "🐕🐈" },
+                    { word: "A", sentence: "I see ____ little house.", emoji: "🏠" },
+                    { word: "TO", sentence: "We go ____ the park.", emoji: "🌳" },
+                    { word: "IN", sentence: "The fish is ____ the water.", emoji: "💧" },
+                    { word: "IT", sentence: "____ is my turn now.", emoji: "🙋" },
+                    { word: "OF", sentence: "A box ____ toys.", emoji: "🎁" },
+                    { word: "WAS", sentence: "She ____ running fast.", emoji: "🏃‍♀️" },
+                    { word: "FOR", sentence: "This gift is ____ you.", emoji: "🎁" }
+                ]
+            },
+            // Level 2: First Grade (Dolch Primer/Grade 1 Focus) - 10 Words
+            {
+                name: "Level 2: Intermediate",
+                words: [
+                    { word: "HAVE", sentence: "I ____ a new friend.", emoji: "🤝" },
+                    { word: "FROM", sentence: "The letter is ____ Mom.", emoji: "✉️" },
+                    { word: "BUT", sentence: "I want a cookie, ____ I can't.", emoji: "🍪" },
+                    { word: "NOT", sentence: "The ball is ____ red.", emoji: "🏈" },
+                    { word: "ALL", sentence: "We ate ____ the food.", emoji: "🍕" },
+                    { word: "WERE", sentence: "They ____ happy to play.", emoji: "😊" },
+                    { word: "WHEN", sentence: "____ will we go home?", emoji: "🏡" },
+                    { word: "ARE", sentence: "You ____ a good helper.", emoji: "👍" },
+                    { word: "SAID", sentence: "She ____ 'Hello'.", emoji: "🗣️" },
+                    { word: "LIKE", sentence: "I ____ to read books.", emoji: "📚" }
+                ]
+            },
+            // Level 3: Second Grade (Dolch Grade 2 Focus) - 10 Words
+            {
+                name: "Level 3: Advanced",
+                words: [
+                    { word: "ALWAYS", sentence: "He ____ wears a hat.", emoji: "🎩" },
+                    { word: "BOTH", sentence: "____ my shoes are new.", emoji: "👟" },
+                    { word: "FAST", sentence: "The car goes very ____.", emoji: "🚗" },
+                    { word: "READ", sentence: "Can you ____ this story?", emoji: "📖" },
+                    { word: "YOUR", sentence: "Is this ____ coat?", emoji: "🧥" },
+                    { word: "BEFORE", sentence: "Wash hands ____ eating.", emoji: "🧼" },
+                    { word: "BETTER", sentence: "This way is ____.", emoji: "✅" },
+                    { word: "CALL", sentence: "Please ____ me later.", emoji: "📞" },
+                    { word: "SIT", sentence: "Please ____ down here.", emoji: "🪑" },
+                    { word: "TELL", sentence: "____ me a secret!", emoji: "🤫" }
+                ]
+            }
         ];
 
-        // --- Audio & Speech Setup ---
+        // --- Audio & Speech Setup (Unchanged) ---
         const correctSynth = new Tone.Synth({
-            oscillator: { type: "sine" },
-            envelope: { attack: 0.005, decay: 0.1, sustain: 0.05, release: 0.1 }
+            oscillator: { type: "sine" }, envelope: { attack: 0.005, decay: 0.1, sustain: 0.05, release: 0.1 }
         }).toDestination();
         const incorrectSynth = new Tone.Synth({
-            oscillator: { type: "square" },
-            envelope: { attack: 0.01, decay: 0.05, sustain: 0.01, release: 0.1 }
+            oscillator: { type: "square" }, envelope: { attack: 0.01, decay: 0.05, sustain: 0.01, release: 0.1 }
         }).toDestination();
-
-        // Web Speech API setup
         const speech = new SpeechSynthesisUtterance();
-        speech.lang = 'en-US'; // Set language for clear reading
-        speech.rate = 0.8;      // Slightly slower speech for children
+        speech.lang = 'en-US'; 
+        speech.rate = 0.8;      
 
         // --- Game State Variables ---
+        let currentLevelIndex = 0;              // Start at Level 1 (index 0)
+        let masteredWords = new Set();          // Tracks words correctly answered in the current level
         let currentWordData = {};
-        let correctStreak = 0;
+        let correctStreak = 0;                  // Used for dynamic choice difficulty
         const DIFFICULTY_THRESHOLD = 5;
 
+        // DOM Elements
         const imageBox = document.getElementById('imageBox');
         const sentenceDisplayEl = document.getElementById('sentenceDisplay');
         const wordButtonsContainer = document.getElementById('wordButtons');
         const feedbackEl = document.getElementById('feedback');
         const scoreDisplayEl = document.getElementById('scoreDisplay');
         const difficultyIndicatorEl = document.getElementById('difficultyIndicator');
+        const levelIndicatorEl = document.getElementById('levelIndicator');
+
 
         // --- UTILITY FUNCTIONS ---
         
@@ -169,16 +211,39 @@
             incorrectSynth.triggerAttackRelease("C3", "16n");
         }
 
-        // New function to speak text
         function speakText(text) {
-            window.speechSynthesis.cancel(); // Stop any current speech
+            window.speechSynthesis.cancel();
             speech.text = text;
             window.speechSynthesis.speak(speech);
         }
 
+        function setFemaleVoice() {
+             // (Logic to set preferred voice remains the same)
+            const voices = window.speechSynthesis.getVoices();
+            const femaleVoice = voices.find(voice => 
+                voice.lang === 'en-US' && 
+                (voice.name.includes('Female') || voice.name.includes('Zira') || voice.name.includes('Samantha'))
+            );
+            if (femaleVoice) {
+                speech.voice = femaleVoice;
+            }
+        }
+        if (window.speechSynthesis.onvoiceschanged !== undefined) {
+            window.speechSynthesis.onvoiceschanged = setFemaleVoice;
+        } else {
+            setFemaleVoice();
+        }
+
+        // --- LEVEL MANAGEMENT FUNCTIONS ---
+
         function updateGameStatus() {
-            scoreDisplayEl.textContent = `Correct Streak: ${correctStreak}`;
+            // Update Score/Progress
+            scoreDisplayEl.textContent = `Progress: ${masteredWords.size} / ${gameLevels[currentLevelIndex].words.length}`;
             
+            // Update Level Indicator
+            levelIndicatorEl.textContent = gameLevels[currentLevelIndex].name.toUpperCase();
+            
+            // Update Difficulty Indicator (for number of choices)
             if (correctStreak >= DIFFICULTY_THRESHOLD) {
                 difficultyIndicatorEl.textContent = "MORE CHOICES";
                 difficultyIndicatorEl.classList.remove('bg-blue-200', 'text-blue-700');
@@ -189,35 +254,76 @@
                 difficultyIndicatorEl.classList.remove('bg-red-200', 'text-red-700');
             }
         }
-
-        function loadNewProblem() {
-            const availableWords = sightWords.filter(w => w.word !== currentWordData.word);
-            shuffleArray(availableWords);
+        
+        function loadNextLevel() {
+            currentLevelIndex++;
+            masteredWords.clear(); // Reset mastered words for the new level
             
-            currentWordData = availableWords[0] || sightWords[0];
+            if (currentLevelIndex >= gameLevels.length) {
+                // Game Over / All Levels Complete
+                feedbackEl.textContent = "CONGRATULATIONS! You mastered all levels!";
+                speakText("Congratulations! You mastered all three levels!");
+                // Optionally hide buttons, display final screen
+                wordButtonsContainer.innerHTML = '';
+                imageBox.textContent = '🏆';
+                sentenceDisplayEl.textContent = 'Game Complete!';
+                return;
+            }
+            
+            // Announce the new level
+            const newLevelName = gameLevels[currentLevelIndex].name;
+            feedbackEl.textContent = `LEVEL UP! Starting ${newLevelName}!`;
+            speakText(`Level up! Starting ${newLevelName}!`);
+            
+            // Reset streak and load first problem of the new level
+            correctStreak = 0;
+            setTimeout(loadNewProblem, 3000); 
+        }
+
+        // Function to select a random word *not yet mastered* in the current level
+        function loadNewProblem() {
+            // Stop if game is complete
+            if (currentLevelIndex >= gameLevels.length) return; 
+
+            const currentLevelWords = gameLevels[currentLevelIndex].words;
+            
+            // Get all words in the current level that haven't been mastered
+            const unmasteredWords = currentLevelWords.filter(w => !masteredWords.has(w.word));
+
+            if (unmasteredWords.length === 0) {
+                // Level is complete!
+                loadNextLevel();
+                return; 
+            }
+            
+            // Shuffle and pick a word from the unmastered list
+            shuffleArray(unmasteredWords);
+            
+            // Select a new word, avoiding the previous word if possible
+            const availableForSelection = unmasteredWords.filter(w => w.word !== currentWordData.word);
+            currentWordData = availableForSelection[0] || unmasteredWords[0];
             
             feedbackEl.textContent = '';
             updateGameStatus();
 
-            // Update image display and sentence context
+            // Update display and speech
             imageBox.textContent = currentWordData.emoji;
             sentenceDisplayEl.textContent = currentWordData.sentence;
-
-            // NEW: Speak the sentence prompt
-            // Replace the blank ('____') with a pause or 'blank' for better reading flow
             const speechText = currentWordData.sentence.replace('____', '... blank ...');
             speakText(speechText);
 
-            // Generate word button choices
             generateWordButtons(currentWordData.word);
         }
 
+        // Function to create the set of clickable word buttons (Distractor logic remains the same)
         function generateWordButtons(targetWord) {
             wordButtonsContainer.innerHTML = '';
             
+            // Use ALL words from the current level as potential distractors
+            const currentLevelWords = gameLevels[currentLevelIndex].words;
             const numChoices = (correctStreak >= DIFFICULTY_THRESHOLD) ? 5 : 3; 
             
-            const distractors = sightWords
+            const distractors = currentLevelWords
                 .map(w => w.word)
                 .filter(word => word !== targetWord);
             
@@ -243,22 +349,24 @@
                 Tone.start();
             }
             
-            window.speechSynthesis.cancel(); // Stop sentence reading when player clicks
+            window.speechSynthesis.cancel();
             Array.from(wordButtonsContainer.children).forEach(btn => btn.disabled = true);
 
             if (clickedWord === currentWordData.word) {
                 // Correct Answer
                 buttonElement.classList.add('correct-answer-button');
                 playCorrectSound();
+                
+                // Add to mastered set
+                masteredWords.add(currentWordData.word); 
+
                 feedbackEl.textContent = "YES! " + currentWordData.word + " fits!";
                 correctStreak++;
 
-                // NEW: Speak the correct word and the complete sentence
                 const completedSentence = currentWordData.sentence.replace('____', currentWordData.word);
                 speakText(currentWordData.word + ". " + completedSentence);
 
-
-                // Automatically load the next problem after audio finishes (or a slight delay)
+                // Load next problem or level
                 setTimeout(loadNewProblem, 3000);
 
             } else {
@@ -267,9 +375,11 @@
                 feedbackEl.textContent = "Not quite! Try another word.";
                 buttonElement.classList.add('incorrect-answer-button');
                 
+                // Reset streak on error
                 correctStreak = 0; 
                 updateGameStatus();
 
+                // Reset button appearance and re-enable choices
                 setTimeout(() => {
                     buttonElement.classList.remove('incorrect-answer-button');
                     feedbackEl.textContent = '';
@@ -277,9 +387,13 @@
                         if (btn !== buttonElement) {
                              btn.disabled = false;
                         } else {
-                             btn.style.opacity = '0.5';
+                             btn.style.opacity = '0.5'; // Visually mark the wrong choice
                         }
                     });
+                    
+                    // Re-speak the sentence prompt after a mistake to refocus the child
+                    const speechText = currentWordData.sentence.replace('____', '... blank ...');
+                    speakText(speechText);
 
                 }, 1000);
             }
