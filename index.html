@@ -26,7 +26,6 @@
             padding: 2rem;
             text-align: center;
         }
-        /* Increased spacing after the title */
         .game-title {
             margin-bottom: 2.5rem; 
         }
@@ -41,7 +40,6 @@
             font-size: 3rem;
             font-weight: 700;
             color: #334155;
-            /* Increased bottom margin for more separation */
             margin-bottom: 3rem; 
             display: flex;
             justify-content: center;
@@ -82,15 +80,14 @@
             border-color: #dc2626 !important;
             color: white !important;
         }
-        .level-indicator { /* Renamed for clarity, removed difficulty style */
+        .level-indicator {
             padding: 0.25rem 0.5rem;
             border-radius: 9999px;
             font-size: 0.875rem;
             font-weight: 700;
             display: inline-block;
-            margin-bottom: 0.5rem; /* Space below level indicator */
+            margin-bottom: 0.5rem; 
         }
-        /* --- PROGRESS BAR STYLES (Unchanged) --- */
         .progress-bar-container {
             width: 80%;
             margin: 0 auto 1.5rem;
@@ -107,7 +104,6 @@
             transition: width 0.5s ease-in-out;
             border-radius: 10px 0 0 10px;
         }
-        /* --- SOLID LINE ALIGNMENT FIX --- */
         #sentenceDisplay .blank-slot {
             display: inline-block;
             width: 100px;
@@ -153,7 +149,7 @@
             {
                 name: "Level 1: Beginner",
                 words: [
-                    { word: "THE", sentence: "Look at ____ sun!", emoji: "☀️" },
+                    { word: "THE", sentence: "Look at ____ dog.", emoji: "🐕" }, // UPDATED!
                     { word: "IS", sentence: "The bug ____ small.", emoji: "🐛" },
                     { word: "AND", sentence: "I like dogs ____ cats.", emoji: "🐕🐈" },
                     { word: "A", sentence: "I see ____ little house.", emoji: "🏠" },
@@ -274,17 +270,12 @@
             const totalWords = gameLevels[currentLevelIndex].words.length;
             const progress = masteredWords.size;
             
-            // 1. Update Score/Progress Text
             scoreDisplayEl.textContent = `Progress: ${progress} / ${totalWords}`;
             
-            // 2. Update Progress Bar (Visual Achievement)
             const percentage = (progress / totalWords) * 100;
             progressBarEl.style.width = `${percentage}%`;
             
-            // 3. Update Level Indicator (Current Level)
             levelIndicatorEl.textContent = gameLevels[currentLevelIndex].name.toUpperCase();
-            
-            // 4. NOTE: Difficulty indicator removed entirely.
         }
         
         function loadNextLevel() {
@@ -301,7 +292,6 @@
                 return;
             }
             
-            // Announce the new level
             const newLevelName = gameLevels[currentLevelIndex].name;
             feedbackEl.textContent = `LEVEL UP! Starting ${newLevelName}! 🚀`;
             speakText(`Level up! Starting ${newLevelName}!`);
@@ -310,7 +300,6 @@
             setTimeout(loadNewProblem, 3000); 
         }
 
-        // Function to select a random word *not yet mastered* in the current level
         function loadNewProblem() {
             if (currentLevelIndex >= gameLevels.length) return; 
 
@@ -330,24 +319,20 @@
             feedbackEl.textContent = '';
             updateGameStatus();
 
-            // Update display: Replace '____' with the styled solid line slot
             imageBox.textContent = currentWordData.emoji;
             const sentenceWithSlot = currentWordData.sentence.replace('____', '<span class="blank-slot"></span>');
             sentenceDisplayEl.innerHTML = sentenceWithSlot;
 
-            // Update speech
             const speechText = currentWordData.sentence.replace('____', '... blank ...');
             speakText(speechText);
 
             generateWordButtons(currentWordData.word);
         }
 
-        // Function to create the set of clickable word buttons (Distractor logic remains the same)
         function generateWordButtons(targetWord) {
             wordButtonsContainer.innerHTML = '';
             
             const currentLevelWords = gameLevels[currentLevelIndex].words;
-            // Dynamic difficulty logic remains: 3 choices if streak < 5, 5 choices if streak >= 5
             const numChoices = (correctStreak >= DIFFICULTY_THRESHOLD) ? 5 : 3; 
             
             const distractors = currentLevelWords
@@ -389,11 +374,9 @@
                 feedbackEl.textContent = "YES! " + currentWordData.word + " fits!";
                 correctStreak++;
 
-                // Update display to show the word filled in (removing the solid line slot)
                 const completedSentence = currentWordData.sentence.replace('____', currentWordData.word);
                 sentenceDisplayEl.innerHTML = completedSentence;
 
-                // Speak the completed sentence
                 speakText(currentWordData.word + ". " + completedSentence);
 
                 setTimeout(loadNewProblem, 3000);
@@ -418,7 +401,6 @@
                         }
                     });
                     
-                    // Re-speak the sentence prompt and re-display the blank slot
                     const speechText = currentWordData.sentence.replace('____', '... blank ...');
                     speakText(speechText);
                     const sentenceWithSlot = currentWordData.sentence.replace('____', '<span class="blank-slot"></span>');
